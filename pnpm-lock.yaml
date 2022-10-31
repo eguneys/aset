@@ -1,11 +1,17 @@
 lockfileVersion: 5.4
 
 specifiers:
+  '@hyrious/esbuild-plugin-commonjs': ^0.2.1
   '@types/node': ^18.11.8
   esbuild: ^0.15.12
+  pngjs: ^6.0.0
   typescript: ^4.8.4
 
+dependencies:
+  pngjs: 6.0.0
+
 devDependencies:
+  '@hyrious/esbuild-plugin-commonjs': 0.2.1_esbuild@0.15.12
   '@types/node': 18.11.8
   esbuild: 0.15.12
   typescript: 4.8.4
@@ -29,6 +35,19 @@ packages:
     requiresBuild: true
     dev: true
     optional: true
+
+  /@hyrious/esbuild-plugin-commonjs/0.2.1_esbuild@0.15.12:
+    resolution: {integrity: sha512-Aq7dD4+ClofgAt9Ed6HM9B+NV0YJMqdnOycc2d/Iv+VgX23IcuHJWBbq9s3IFCNlJL6T/3ZbMAoU77dQrk509g==}
+    engines: {node: '>=14'}
+    peerDependencies:
+      cjs-module-lexer: '*'
+      esbuild: '*'
+    peerDependenciesMeta:
+      cjs-module-lexer:
+        optional: true
+    dependencies:
+      esbuild: 0.15.12
+    dev: true
 
   /@types/node/18.11.8:
     resolution: {integrity: sha512-uGwPWlE0Hj972KkHtCDVwZ8O39GmyjfMane1Z3GUBGGnkZ2USDq7SxLpVIiIHpweY9DS0QTDH0Nw7RNBsAAZ5A==}
@@ -243,6 +262,11 @@ packages:
       esbuild-windows-64: 0.15.12
       esbuild-windows-arm64: 0.15.12
     dev: true
+
+  /pngjs/6.0.0:
+    resolution: {integrity: sha512-TRzzuFRRmEoSW/p1KVAmiOgPco2Irlah+bGFCeNfJXxxYGwSw7YwAOAcd7X28K/m5bjBWKsC29KyoMfHbypayg==}
+    engines: {node: '>=12.13.0'}
+    dev: false
 
   /typescript/4.8.4:
     resolution: {integrity: sha512-QCh+85mCy+h0IGff8r5XWzOVSbBO+KfeYrMQh7NJ58QujwcE22u+NUSmUxqF+un70P9GXKxa2HCNiTTMJknyjQ==}

@@ -1,21 +1,15 @@
 import * as zlib from 'zlib'
+import { Image } from './image'
 
 const CLayer =  0
 const CCel = 0x2005
 const CPalette = 0x2019
 const CUserData = 0
-const CFrameTags = 0
+const CFrameTags = 0x2018
 const CSlice = 0
 
 
-export type ChunkType = 0x2005 | 0x2019 | 0
-
-export type Image = {
-  width: number,
-  height: number,
-  pixels: Array<number>
-}
-
+export type ChunkType = 0x2005 | 0x2019 | 0x2018 | 0
 export type CelChunk = {
   layer_index: number,
   x: number,
@@ -24,9 +18,17 @@ export type CelChunk = {
   image_or_link: Image | number
 }
 
+export type TagsChunk = Array<Tag>
+
+export type Tag = {
+  from: number,
+  to: number,
+  name: string
+}
+
 export type PaletteChunk = Array<number>
 
-export type ChunkData = CelChunk | PaletteChunk
+export type ChunkData = CelChunk | PaletteChunk | TagsChunk
 
 
 export type Chunk = {
@@ -40,7 +42,8 @@ export type Frame = {
   nb_bytes: number,
   duration: number,
   nb_chunks: number,
-  chunks: Array<Chunk>
+  chunks: Array<Chunk>,
+  image: Image
 }
 
 export type Aseprite = {
@@ -57,9 +60,24 @@ function n(n: number) {
   return [...Array(n).keys()]
 }
 
+
+// TODO compose layers with blending modes
+function render_chunks(chunks: Array<Chunk>) {
+  let cel = chunks.filter(_ => _.type === CCel)[0]
+
+  return ((cel.data as CelChunk).image_or_link as Image)
+}
+
 export function aseprite(data: Buffer) {
 
   let i = 0
+
+  function _string() {
+    let length = word()
+    let res = data.toString('utf8', i, i + length)
+    i += length
+    return res
+  }
 
   function _short() {
     let res = data.readInt16LE(i)
@@ -87,6 +105,29 @@ export function aseprite(data: Buffer) {
 
   function pixel() {
     return n(4).map(_ => _byte())
+  }
+
+  function ctags() {
+    let nb_tags = word()
+    n(8).map(() => _byte())
+
+    return n(nb_tags).map(() => {
+      let from = word()
+      let to = word()
+      let dir = _byte()
+      let repeat = word()
+
+      n(6).map(() => _byte())
+      n(3).map(() => _byte())
+      _byte()
+      let name = _string()
+
+      return {
+        from,
+        to,
+        name
+      }
+    })
   }
 
   function ccell() {
@@ -167,6 +208,7 @@ export function aseprite(data: Buffer) {
       case CUserData:
         break
       case CFrameTags:
+        data = ctags()
         break
       case CSlice:
         break
@@ -195,7 +237,7 @@ export function aseprite(data: Buffer) {
 
     let chunks = n(nb_chunks).map(_ => chunk())
 
-    console.log(chunks)
+    let image = render_chunks(chunks)
 
     i = _i + nb_bytes
 
@@ -203,7 +245,8 @@ export function aseprite(data: Buffer) {
       nb_bytes,
       duration,
       nb_chunks,
-      chunks
+      chunks,
+      image
     }
   }
 
