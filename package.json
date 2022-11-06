@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "",
   "type": "module",
-  "main": "./dist/index.js",
+  "exports": "./dist/index.js",
   "scripts": {
     "start": "pnpm bundle && node ./dist/index.js",
     "bundle": "rm -rf dist && node bundle.js",

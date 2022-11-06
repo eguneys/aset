@@ -1917,28 +1917,28 @@ var require_packer_sync = __commonJS({
         );
       }
       let options = opt || {};
-      let packer2 = new Packer2(options);
+      let packer = new Packer2(options);
       let chunks = [];
       chunks.push(Buffer.from(constants.PNG_SIGNATURE));
-      chunks.push(packer2.packIHDR(metaData.width, metaData.height));
+      chunks.push(packer.packIHDR(metaData.width, metaData.height));
       if (metaData.gamma) {
-        chunks.push(packer2.packGAMA(metaData.gamma));
+        chunks.push(packer.packGAMA(metaData.gamma));
       }
-      let filteredData = packer2.filterData(
+      let filteredData = packer.filterData(
         metaData.data,
         metaData.width,
         metaData.height
       );
       let compressedData = zlib2.deflateSync(
         filteredData,
-        packer2.getDeflateOptions()
+        packer.getDeflateOptions()
       );
       filteredData = null;
       if (!compressedData || !compressedData.length) {
         throw new Error("bad png - invalid compressed data response");
       }
-      chunks.push(packer2.packIDAT(compressedData));
-      chunks.push(packer2.packIEND());
+      chunks.push(packer.packIDAT(compressedData));
+      chunks.push(packer.packIEND());
       return Buffer.concat(chunks);
     };
   }
@@ -1949,13 +1949,13 @@ var require_png_sync = __commonJS({
   "node_modules/.pnpm/pngjs@6.0.0/node_modules/pngjs/lib/png-sync.js"(exports) {
     var import_parser_sync = __toESM(require_parser_sync());
     var import_packer_sync = __toESM(require_packer_sync());
-    var parse2 = import_parser_sync.default;
-    var pack2 = import_packer_sync.default;
+    var parse = import_parser_sync.default;
+    var pack = import_packer_sync.default;
     exports.read = function(buffer, options) {
-      return parse2(buffer, options || {});
+      return parse(buffer, options || {});
     };
     exports.write = function(png, options) {
-      return pack2(png, options);
+      return pack(png, options);
     };
   }
 });
@@ -2558,94 +2558,99 @@ var Node = class {
 };
 
 // src/index.ts
-var folder_name = process.argv[2];
-var out_prefix = process.argv[3];
-var packer = new Packer();
-if (!folder_name || !out_prefix) {
-  console.error("Usage: aset folder out_prefix");
-} else {
-  fs.readdir(folder_name, (err, files) => {
-    if (err) {
-      console.error("Usage: aset folder out_prefix");
-      return;
-    }
-    Promise.all(files.filter((_) => _.match(/\.ase$/)).map((_) => parse(folder_name + "/" + _).then((aseprite2) => pack(aseprite2, _)))).then(pack_end);
+function src_default(folders, out_prefix) {
+  let packer = new Packer();
+  Promise.all(folders.map((folder_name) => {
+    return new Promise((resolve) => fs.readdir(folder_name, (err, files) => {
+      if (err) {
+        throw err;
+        return;
+      }
+      Promise.all(files.filter((_) => _.match(/\.ase$/)).map((_) => parse(folder_name + "/" + _).then((aseprite2) => pack(aseprite2, _, folder_name)))).then(resolve);
+    }));
+  })).then((res) => {
+    pack_end(res.flat());
   });
-}
-function pack_end(packs) {
-  packer.pack();
-  let res = packs.map(({ name, packs: packs2, tags, slices }) => {
-    let frame = packs2[0].frame;
-    let packeds = packs2.map((_) => _.packed);
+  function pack_end(packs) {
+    packer.pack();
+    let res = packs.map(({ folder_name, name, packs: packs2, tags, slices }) => {
+      let frame = packs2[0].frame;
+      let packeds = packs2.map((_) => _.packed);
+      return {
+        folder: folder_name,
+        name,
+        slices: slices.map((_) => [
+          _.frame,
+          _.origin.x,
+          _.origin.y,
+          _.width,
+          _.height,
+          _.pivot?.x,
+          _.pivot?.y
+        ]),
+        tags: tags.map((_) => [
+          _.from,
+          _.to,
+          _.name
+        ]),
+        frame: [
+          frame.x,
+          frame.y,
+          frame.w,
+          frame.h
+        ],
+        packeds: packeds.flatMap((_) => [
+          _.x,
+          _.y,
+          _.w,
+          _.h
+        ])
+      };
+    });
+    let dst = out_prefix + "_0.png";
+    fs.writeFile(
+      dst,
+      packer.pages[0].png_buffer,
+      (err) => {
+        if (err) {
+          console.error(err);
+        } else {
+          console.log(`${dst}`);
+        }
+      }
+    );
+    let dst_json = out_prefix + "_0.json";
+    fs.writeFile(
+      dst_json,
+      JSON.stringify(res),
+      (err) => {
+        if (err) {
+          console.error(err);
+        } else {
+          console.log(`${dst_json}`);
+        }
+      }
+    );
+  }
+  function pack(aseprite2, name, folder_name) {
     return {
-      name,
-      slices: slices.map((_) => [
-        _.frame,
-        _.origin.x,
-        _.origin.y,
-        _.width,
-        _.height,
-        _.pivot?.x,
-        _.pivot?.y
-      ]),
-      tags: tags.map((_) => [
-        _.from,
-        _.to,
-        _.name
-      ]),
-      frame: [
-        frame.x,
-        frame.y,
-        frame.w,
-        frame.h
-      ],
-      packeds: packeds.flatMap((_) => [
-        _.x,
-        _.y,
-        _.w,
-        _.h
-      ])
+      folder_name,
+      name: name.split(".")[0],
+      packs: aseprite2.frames.map((frame) => packer.add(frame.image)).filter(Boolean),
+      tags: aseprite2.tags,
+      slices: aseprite2.slices
     };
-  });
-  let dst = out_prefix + "_0.png";
-  fs.writeFile(
-    dst,
-    packer.pages[0].png_buffer,
-    (err) => {
+  }
+  function parse(file) {
+    return new Promise((resolve) => fs.readFile(file, function(err, data) {
       if (err) {
         console.error(err);
-      } else {
-        console.log(`${dst}`);
+        return;
       }
-    }
-  );
-  let dst_json = out_prefix + "_0.json";
-  fs.writeFile(
-    dst_json,
-    JSON.stringify(res),
-    (err) => {
-      if (err) {
-        console.error(err);
-      } else {
-        console.log(`${dst_json}`);
-      }
-    }
-  );
+      resolve(aseprite(data));
+    }));
+  }
 }
-function pack(aseprite2, name) {
-  return {
-    name: name.split(".")[0],
-    packs: aseprite2.frames.map((frame) => packer.add(frame.image)).filter(Boolean),
-    tags: aseprite2.tags,
-    slices: aseprite2.slices
-  };
-}
-function parse(file) {
-  return new Promise((resolve) => fs.readFile(file, function(err, data) {
-    if (err) {
-      console.error(err);
-      return;
-    }
-    resolve(aseprite(data));
-  }));
-}
+export {
+  src_default as default
+};
