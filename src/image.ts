@@ -14,7 +14,7 @@ export class ImageSave {
       width: this.image.width,
       height: this.image.height,
     })
-    png.data = new Uint16Array(this.image.pixels)
+    png.data = new Uint16Array(this.image.pixels) as any
 
     return PNG.sync.write(png)
   }

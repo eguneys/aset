@@ -6,10 +6,10 @@ const CCel = 0x2005
 const CPalette = 0x2019
 const CUserData = 0
 const CFrameTags = 0x2018
-const CSlice = 0
+const CSlice = 0x2022
 
 
-export type ChunkType = 0x2005 | 0x2019 | 0x2018 | 0
+export type ChunkType = 0x2005 | 0x2019 | 0x2018 | 0x2022 | 0
 export type CelChunk = {
   layer_index: number,
   x: number,
@@ -17,6 +17,19 @@ export type CelChunk = {
   alpha: number,
   image_or_link: Image | number
 }
+
+export type Point = { x: number, y: number }
+
+export type Slice = {
+  name: string,
+  frame: number,
+  origin: Point,
+  width: number,
+  height: number,
+  pivot?: Point
+}
+
+export type SliceChunk = Array<Slice>
 
 export type TagsChunk = Array<Tag>
 
@@ -28,7 +41,7 @@ export type Tag = {
 
 export type PaletteChunk = Array<number>
 
-export type ChunkData = CelChunk | PaletteChunk | TagsChunk
+export type ChunkData = CelChunk | PaletteChunk | TagsChunk | SliceChunk
 
 
 export type Chunk = {
@@ -53,7 +66,9 @@ export type Aseprite = {
   height: number,
   c_depth: number,
   flags: number,
-  frames: Array<Frame>
+  frames: Array<Frame>,
+  tags: Array<Tag>,
+  slices: Array<Slice>
 }
 
 function n(n: number) {
@@ -66,6 +81,17 @@ function render_chunks(chunks: Array<Chunk>) {
   let cel = chunks.filter(_ => _.type === CCel)[0]
 
   return ((cel.data as CelChunk).image_or_link as Image)
+}
+
+function render_tags(frames: Array<Frame>) {
+
+  let tags: TagsChunk = frames.flatMap(_ => _.chunks).filter(_ => _.type === CFrameTags).flatMap(_ => _.data! as TagsChunk)
+  return tags
+}
+
+function render_slices(frames: Array<Frame>) {
+  let slices: SliceChunk = frames.flatMap(_ => _.chunks).filter(_ => _.type === CSlice).flatMap(_ => _.data! as SliceChunk)
+  return slices
 }
 
 export function aseprite(data: Buffer) {
@@ -82,6 +108,12 @@ export function aseprite(data: Buffer) {
   function _short() {
     let res = data.readInt16LE(i)
     i += 2
+    return res
+  }
+
+  function _long() {
+    let res = data.readInt32LE(i)
+    i += 4
     return res
   }
 
@@ -171,6 +203,47 @@ export function aseprite(data: Buffer) {
 
   }
 
+  function cslice() {
+    let count = dword()
+    let flags = dword()
+    dword()
+    let name = _string()
+    return n(count).map(_ => {
+
+      let frame = dword()
+      let origin = {
+        x: dword(),
+        y: dword()
+      }
+      let width = dword()
+      let height = dword()
+
+      if (flags & (1 << 0)) {
+        _long()
+        _long()
+        dword()
+        dword()
+      }
+      let pivot
+      if (flags & (1 << 1)) {
+        pivot = {
+          x: _long(),
+          y: _long()
+        }
+      }
+
+      return {
+        name,
+        frame,
+        origin,
+        width,
+        height,
+        pivot
+      }
+
+    })
+  }
+
   function cpalette() {
 
     let p_size = dword()
@@ -211,6 +284,7 @@ export function aseprite(data: Buffer) {
         data = ctags()
         break
       case CSlice:
+        data = cslice()
         break
     }
     i = _i + size
@@ -274,6 +348,8 @@ export function aseprite(data: Buffer) {
   n(84).map(_ => _byte())
 
   let frames = n(nb_frames).map(_ => frame())
+  let tags = render_tags(frames)
+  let slices = render_slices(frames)
 
 
   return {
@@ -283,6 +359,8 @@ export function aseprite(data: Buffer) {
     height,
     c_depth,
     flags,
-    frames
+    frames,
+    tags,
+    slices
   }
 }

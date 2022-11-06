@@ -1463,7 +1463,7 @@ var require_packer = __commonJS({
     var bitPacker = import_bitpacker.default;
     var filter = import_filter_pack.default;
     var zlib2 = __import_zlib2;
-    var Packer = module.exports = function(options) {
+    var Packer2 = module.exports = function(options) {
       this._options = options;
       options.deflateChunkSize = options.deflateChunkSize || 32 * 1024;
       options.deflateLevel = options.deflateLevel != null ? options.deflateLevel : 9;
@@ -1499,23 +1499,23 @@ var require_packer = __commonJS({
         );
       }
     };
-    Packer.prototype.getDeflateOptions = function() {
+    Packer2.prototype.getDeflateOptions = function() {
       return {
         chunkSize: this._options.deflateChunkSize,
         level: this._options.deflateLevel,
         strategy: this._options.deflateStrategy
       };
     };
-    Packer.prototype.createDeflate = function() {
+    Packer2.prototype.createDeflate = function() {
       return this._options.deflateFactory(this.getDeflateOptions());
     };
-    Packer.prototype.filterData = function(data, width, height) {
+    Packer2.prototype.filterData = function(data, width, height) {
       let packedData = bitPacker(data, width, height, this._options);
       let bpp = constants.COLORTYPE_TO_BPP_MAP[this._options.colorType];
       let filteredData = filter(packedData, width, height, this._options, bpp);
       return filteredData;
     };
-    Packer.prototype._packChunk = function(type, data) {
+    Packer2.prototype._packChunk = function(type, data) {
       let len = data ? data.length : 0;
       let buf = Buffer.alloc(len + 12);
       buf.writeUInt32BE(len, 0);
@@ -1529,12 +1529,12 @@ var require_packer = __commonJS({
       );
       return buf;
     };
-    Packer.prototype.packGAMA = function(gamma) {
+    Packer2.prototype.packGAMA = function(gamma) {
       let buf = Buffer.alloc(4);
       buf.writeUInt32BE(Math.floor(gamma * constants.GAMMA_DIVISION), 0);
       return this._packChunk(constants.TYPE_gAMA, buf);
     };
-    Packer.prototype.packIHDR = function(width, height) {
+    Packer2.prototype.packIHDR = function(width, height) {
       let buf = Buffer.alloc(13);
       buf.writeUInt32BE(width, 0);
       buf.writeUInt32BE(height, 4);
@@ -1545,10 +1545,10 @@ var require_packer = __commonJS({
       buf[12] = 0;
       return this._packChunk(constants.TYPE_IHDR, buf);
     };
-    Packer.prototype.packIDAT = function(data) {
+    Packer2.prototype.packIDAT = function(data) {
       return this._packChunk(constants.TYPE_IDAT, data);
     };
-    Packer.prototype.packIEND = function() {
+    Packer2.prototype.packIEND = function() {
       return this._packChunk(constants.TYPE_IEND, null);
     };
   }
@@ -1560,15 +1560,15 @@ import __import_stream2 from "stream";
 var require_packer_async = __commonJS({
   "node_modules/.pnpm/pngjs@6.0.0/node_modules/pngjs/lib/packer-async.js"(exports, module) {
     var import_constants = __toESM(require_constants());
-    var import_packer = __toESM(require_packer());
+    var import_packer2 = __toESM(require_packer());
     var util = __import_util4;
     var Stream = __import_stream2;
     var constants = import_constants.default;
-    var Packer = import_packer.default;
+    var Packer2 = import_packer2.default;
     var PackerAsync = module.exports = function(opt) {
       Stream.call(this);
       let options = opt || {};
-      this._packer = new Packer(options);
+      this._packer = new Packer2(options);
       this._deflate = this._packer.createDeflate();
       this.readable = true;
     };
@@ -1902,14 +1902,14 @@ import __import_zlib5 from "zlib";
 var require_packer_sync = __commonJS({
   "node_modules/.pnpm/pngjs@6.0.0/node_modules/pngjs/lib/packer-sync.js"(exports, module) {
     var import_constants = __toESM(require_constants());
-    var import_packer = __toESM(require_packer());
+    var import_packer2 = __toESM(require_packer());
     var hasSyncZlib = true;
     var zlib2 = __import_zlib5;
     if (!zlib2.deflateSync) {
       hasSyncZlib = false;
     }
     var constants = import_constants.default;
-    var Packer = import_packer.default;
+    var Packer2 = import_packer2.default;
     module.exports = function(metaData, opt) {
       if (!hasSyncZlib) {
         throw new Error(
@@ -1917,28 +1917,28 @@ var require_packer_sync = __commonJS({
         );
       }
       let options = opt || {};
-      let packer = new Packer(options);
+      let packer2 = new Packer2(options);
       let chunks = [];
       chunks.push(Buffer.from(constants.PNG_SIGNATURE));
-      chunks.push(packer.packIHDR(metaData.width, metaData.height));
+      chunks.push(packer2.packIHDR(metaData.width, metaData.height));
       if (metaData.gamma) {
-        chunks.push(packer.packGAMA(metaData.gamma));
+        chunks.push(packer2.packGAMA(metaData.gamma));
       }
-      let filteredData = packer.filterData(
+      let filteredData = packer2.filterData(
         metaData.data,
         metaData.width,
         metaData.height
       );
       let compressedData = zlib2.deflateSync(
         filteredData,
-        packer.getDeflateOptions()
+        packer2.getDeflateOptions()
       );
       filteredData = null;
       if (!compressedData || !compressedData.length) {
         throw new Error("bad png - invalid compressed data response");
       }
-      chunks.push(packer.packIDAT(compressedData));
-      chunks.push(packer.packIEND());
+      chunks.push(packer2.packIDAT(compressedData));
+      chunks.push(packer2.packIEND());
       return Buffer.concat(chunks);
     };
   }
@@ -1950,12 +1950,12 @@ var require_png_sync = __commonJS({
     var import_parser_sync = __toESM(require_parser_sync());
     var import_packer_sync = __toESM(require_packer_sync());
     var parse2 = import_parser_sync.default;
-    var pack = import_packer_sync.default;
+    var pack2 = import_packer_sync.default;
     exports.read = function(buffer, options) {
       return parse2(buffer, options || {});
     };
     exports.write = function(png, options) {
-      return pack(png, options);
+      return pack2(png, options);
     };
   }
 });
@@ -1971,7 +1971,7 @@ var require_png = __commonJS({
     var util = __import_util6;
     var Stream = __import_stream3;
     var Parser = import_parser_async.default;
-    var Packer = import_packer_async.default;
+    var Packer2 = import_packer_async.default;
     var PNGSync = import_png_sync.default;
     var PNG2 = exports.PNG = function(options) {
       Stream.call(this);
@@ -1996,7 +1996,7 @@ var require_png = __commonJS({
           this.emit("parsed", data);
         }.bind(this)
       );
-      this._packer = new Packer(options);
+      this._packer = new Packer2(options);
       this._packer.on("data", this.emit.bind(this, "data"));
       this._packer.on("end", this.emit.bind(this, "end"));
       this._parser.on("close", this._handleClose.bind(this));
@@ -2111,13 +2111,21 @@ var CCel = 8197;
 var CPalette = 8217;
 var CUserData = 0;
 var CFrameTags = 8216;
-var CSlice = 0;
+var CSlice = 8226;
 function n(n2) {
   return [...Array(n2).keys()];
 }
 function render_chunks(chunks) {
   let cel = chunks.filter((_) => _.type === CCel)[0];
   return cel.data.image_or_link;
+}
+function render_tags(frames) {
+  let tags = frames.flatMap((_) => _.chunks).filter((_) => _.type === CFrameTags).flatMap((_) => _.data);
+  return tags;
+}
+function render_slices(frames) {
+  let slices = frames.flatMap((_) => _.chunks).filter((_) => _.type === CSlice).flatMap((_) => _.data);
+  return slices;
 }
 function aseprite(data) {
   let i = 0;
@@ -2130,6 +2138,11 @@ function aseprite(data) {
   function _short() {
     let res = data.readInt16LE(i);
     i += 2;
+    return res;
+  }
+  function _long() {
+    let res = data.readInt32LE(i);
+    i += 4;
     return res;
   }
   function _byte() {
@@ -2203,6 +2216,42 @@ function aseprite(data) {
       image_or_link
     };
   }
+  function cslice() {
+    let count = dword();
+    let flags2 = dword();
+    dword();
+    let name = _string();
+    return n(count).map((_) => {
+      let frame2 = dword();
+      let origin = {
+        x: dword(),
+        y: dword()
+      };
+      let width2 = dword();
+      let height2 = dword();
+      if (flags2 & 1 << 0) {
+        _long();
+        _long();
+        dword();
+        dword();
+      }
+      let pivot;
+      if (flags2 & 1 << 1) {
+        pivot = {
+          x: _long(),
+          y: _long()
+        };
+      }
+      return {
+        name,
+        frame: frame2,
+        origin,
+        width: width2,
+        height: height2,
+        pivot
+      };
+    });
+  }
   function cpalette() {
     let p_size = dword();
     let from = dword();
@@ -2239,6 +2288,7 @@ function aseprite(data) {
         data2 = ctags();
         break;
       case CSlice:
+        data2 = cslice();
         break;
     }
     i = _i + size;
@@ -2289,6 +2339,8 @@ function aseprite(data) {
   let grid_h = word();
   n(84).map((_) => _byte());
   let frames = n(nb_frames).map((_) => frame());
+  let tags = render_tags(frames);
+  let slices = render_slices(frames);
   return {
     file_size,
     nb_frames,
@@ -2296,7 +2348,9 @@ function aseprite(data) {
     height,
     c_depth,
     flags,
-    frames
+    frames,
+    tags,
+    slices
   };
 }
 
@@ -2316,24 +2370,282 @@ var ImageSave = class {
   }
 };
 
+// src/packer.ts
+var max_size = 8192;
+var Packer = class {
+  constructor(padding = 0, spacing = 0) {
+    this.padding = padding;
+    this.spacing = spacing;
+    this.entries = [];
+    this.pages = [];
+  }
+  add(image) {
+    let pixels = image.pixels;
+    let w = image.width, h = image.height;
+    let source = { x: 0, y: 0, w: image.width, h: image.height };
+    let top = source.y, left = source.x, right = source.x, bottom = source.y;
+    loop_top:
+      for (let y = source.y; y < source.y + source.h; y++) {
+        for (let x = source.x, s = x + y * w; x < source.x + source.w; x++, s++) {
+          if (pixels[s * 4 + 3] > 0) {
+            top = y;
+            break loop_top;
+          }
+        }
+      }
+    loop_left:
+      for (let x = source.x; x < source.x + source.w; x++) {
+        for (let y = top, s = x + y * w; y < source.y + source.h; y++, s++) {
+          if (pixels[s * 4 + 3] > 0) {
+            left = x;
+            break loop_left;
+          }
+        }
+      }
+    loop_right:
+      for (let x = source.x + source.w - 1; x >= left; x--) {
+        for (let y = top, s = x + y * w; y < source.y + source.h; y++, s++) {
+          if (pixels[s * 4 + 3] > 0) {
+            right = x + 1;
+            break loop_right;
+          }
+        }
+      }
+    loop_bottom:
+      for (let y = source.y + source.h - 1; y >= top; y--) {
+        for (let x = left, s = x + y * w; x < right; x++, s++) {
+          if (pixels[s * 4 + 3] > 0) {
+            bottom = y + 1;
+            break loop_bottom;
+          }
+        }
+      }
+    if (right > left && bottom > top) {
+      let frame = {
+        x: source.x - left,
+        y: source.y - top,
+        w,
+        h
+      };
+      let packed = {
+        x: -1,
+        y: -1,
+        w: right - left,
+        h: bottom - top
+      };
+      let entry = {
+        frame,
+        packed,
+        pixels
+      };
+      this.entries.push(entry);
+      return entry;
+    }
+  }
+  pack() {
+    let { padding, spacing } = this;
+    let sources = this.entries.slice(0);
+    sources.sort(
+      (a, b) => b.packed.w * b.packed.h - a.packed.w * a.packed.h
+    );
+    let count = this.entries.length;
+    let nodes = [];
+    let packed = 0, page = 0;
+    while (packed < count) {
+      let from = packed;
+      let index = 0;
+      let root = new Node({
+        x: 0,
+        y: 0,
+        w: sources[from].packed.w + padding * 2 + spacing,
+        h: sources[from].packed.h + padding * 2 + spacing
+      });
+      while (packed < count) {
+        let w = sources[packed].packed.w + padding * 2 + spacing;
+        let h = sources[packed].packed.h + padding * 2 + spacing;
+        let node = root.find(w, h);
+        if (!node) {
+          let canGrowDown = w <= root.rect.w && root.rect.h + h < max_size;
+          let canGrowRight = h <= root.rect.h && root.rect.w + w < max_size;
+          let shouldGrowRight = canGrowRight && root.rect.h >= root.rect.w + w;
+          let shouldGrowDown = canGrowDown && root.rect.w >= root.rect.h + h;
+          if (canGrowDown || canGrowRight) {
+            if (shouldGrowRight || !shouldGrowDown && canGrowRight) {
+              let next = new Node({ x: 0, y: 0, w: root.rect.w + w, h: root.rect.h });
+              next.used = true;
+              next.down = root;
+              next.right = new Node({ x: root.rect.w, y: 0, w, h: root.rect.h });
+              node = next.right;
+              root = next;
+            } else {
+              let next = new Node({ x: 0, y: 0, w: root.rect.w, h: root.rect.h + h });
+              next.used = true;
+              next.down = new Node({ x: 0, y: root.rect.h, w: root.rect.w, h });
+              next.right = root;
+              node = next.down;
+              root = next;
+            }
+          }
+        }
+        if (!node) {
+          break;
+        }
+        node.used = true;
+        node.down = new Node({
+          x: node.rect.x,
+          y: node.rect.y + h,
+          w: node.rect.w,
+          h: node.rect.h - h
+        });
+        node.right = new Node({
+          x: node.rect.x + w,
+          y: node.rect.y,
+          w: node.rect.w - w,
+          h
+        });
+        sources[packed].packed.x = node.rect.x + padding;
+        sources[packed].packed.y = node.rect.y + padding;
+        packed++;
+      }
+      let page_width = 2, page_height = 2;
+      while (page_width < root.rect.w) {
+        page_width *= 2;
+      }
+      while (page_height < root.rect.h) {
+        page_height *= 2;
+      }
+      let page2 = {
+        width: page_width,
+        height: page_height,
+        pixels: []
+      };
+      this.pages.push(new ImageSave(page2));
+      for (let i = from; i < packed; i++) {
+        sources[i].page = this.pages.length - 1;
+        let dst = sources[i].packed, src = sources[i].pixels;
+        for (let x = -padding; x < dst.w + padding; x++) {
+          for (let y = -padding; y < dst.h + padding; y++) {
+            let sx = x < 0 ? 0 : x > dst.w - 1 ? dst.w - 1 : x;
+            let sy = y < 0 ? 0 : y > dst.h - 1 ? dst.h - 1 : y;
+            page2.pixels[(dst.x + x + (dst.y + y) * page2.width) * 4 + 0] = src[(sx + sy * dst.w) * 4 + 0];
+            page2.pixels[(dst.x + x + (dst.y + y) * page2.width) * 4 + 1] = src[(sx + sy * dst.w) * 4 + 1];
+            page2.pixels[(dst.x + x + (dst.y + y) * page2.width) * 4 + 2] = src[(sx + sy * dst.w) * 4 + 2];
+            page2.pixels[(dst.x + x + (dst.y + y) * page2.width) * 4 + 3] = src[(sx + sy * dst.w) * 4 + 3];
+          }
+        }
+      }
+    }
+  }
+};
+var Node = class {
+  constructor(rect) {
+    this.rect = rect;
+    this.used = false;
+  }
+  find(w, h) {
+    if (this.used) {
+      let r = this.right?.find(w, h);
+      if (!r) {
+        return r;
+      }
+      return this.down?.find(w, h);
+    } else {
+      if (w <= this.rect.w && h <= this.rect.h) {
+        return this;
+      }
+    }
+  }
+};
+
 // src/index.ts
-var file_name = process.argv[2];
-if (!file_name) {
-  console.error("Usage node aseprite.js file.aseprite");
+var folder_name = process.argv[2];
+var out_prefix = process.argv[3];
+var packer = new Packer();
+if (!folder_name || !out_prefix) {
+  console.error("Usage: aset folder out_prefix");
 } else {
-  parse(file_name, (_) => {
-    let data = new ImageSave(_.frames[0].image).png_buffer;
-    fs.writeFile("test.png", data, (err) => {
-      console.log(err);
-    });
+  fs.readdir(folder_name, (err, files) => {
+    if (err) {
+      console.error("Usage: aset folder out_prefix");
+      return;
+    }
+    Promise.all(files.filter((_) => _.match(/\.ase$/)).map((_) => parse(folder_name + "/" + _).then((aseprite2) => pack(aseprite2, _)))).then(pack_end);
   });
 }
-function parse(file, cb) {
-  fs.readFile(file, function(err, data) {
+function pack_end(packs) {
+  packer.pack();
+  let res = packs.map(({ name, packs: packs2, tags, slices }) => {
+    let frame = packs2[0].frame;
+    let packeds = packs2.map((_) => _.packed);
+    return {
+      name,
+      slices: slices.map((_) => [
+        _.frame,
+        _.origin.x,
+        _.origin.y,
+        _.width,
+        _.height,
+        _.pivot?.x,
+        _.pivot?.y
+      ]),
+      tags: tags.map((_) => [
+        _.from,
+        _.to,
+        _.name
+      ]),
+      frame: [
+        frame.x,
+        frame.y,
+        frame.w,
+        frame.h
+      ],
+      packeds: packeds.flatMap((_) => [
+        _.x,
+        _.y,
+        _.w,
+        _.h
+      ])
+    };
+  });
+  let dst = out_prefix + "_0.png";
+  fs.writeFile(
+    dst,
+    packer.pages[0].png_buffer,
+    (err) => {
+      if (err) {
+        console.error(err);
+      } else {
+        console.log(`${dst}`);
+      }
+    }
+  );
+  let dst_json = out_prefix + "_0.json";
+  fs.writeFile(
+    dst_json,
+    JSON.stringify(res),
+    (err) => {
+      if (err) {
+        console.error(err);
+      } else {
+        console.log(`${dst_json}`);
+      }
+    }
+  );
+}
+function pack(aseprite2, name) {
+  return {
+    name: name.split(".")[0],
+    packs: aseprite2.frames.map((frame) => packer.add(frame.image)).filter(Boolean),
+    tags: aseprite2.tags,
+    slices: aseprite2.slices
+  };
+}
+function parse(file) {
+  return new Promise((resolve) => fs.readFile(file, function(err, data) {
     if (err) {
       console.error(err);
       return;
     }
-    cb(aseprite(data));
-  });
+    resolve(aseprite(data));
+  }));
 }
