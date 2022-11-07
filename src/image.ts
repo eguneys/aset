@@ -9,7 +9,6 @@ export class ImageSave {
 
 
   get png_buffer() {
-
     let png = new PNG({
       width: this.image.width,
       height: this.image.height,

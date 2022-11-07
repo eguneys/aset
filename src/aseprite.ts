@@ -77,10 +77,43 @@ function n(n: number) {
 
 
 // TODO compose layers with blending modes
-function render_chunks(chunks: Array<Chunk>) {
-  let cel = chunks.filter(_ => _.type === CCel)[0]
+function render_chunks(chunks: Array<Chunk>, width: number, height: number) {
+  let _cel = chunks.filter(_ => _.type === CCel)[0]
 
-  return ((cel.data as CelChunk).image_or_link as Image)
+  let cel: CelChunk = _cel.data as CelChunk
+
+  let srcImage = cel.image_or_link as Image
+
+  let src = srcImage.pixels
+  let dst: Array<number> = []
+
+  let srcX = cel.x
+  let srcY = cel.y
+  let srcW = srcImage.width
+  let srcH = srcImage.height
+  let dstW = width
+  let dstH = height
+
+  let left = Math.max(0, srcX)
+  let right = Math.min(dstW, srcX + srcW)
+  let top = Math.max(0, srcY)
+  let bottom = Math.min(dstH, srcY + srcH)
+
+  for (let dx = left, sx = 0; dx < right; dx++, sx ++) {
+    for (let dy = top, sy = 0; dy < bottom; dy++, sy++) {
+
+      dst[(dx + dy * dstW) * 4 + 0] = src[(sx + sy * srcW)*4 + 0]
+      dst[(dx + dy * dstW) * 4 + 1] = src[(sx + sy * srcW)*4 + 1]
+      dst[(dx + dy * dstW) * 4 + 2] = src[(sx + sy * srcW)*4 + 2]
+      dst[(dx + dy * dstW) * 4 + 3] = src[(sx + sy * srcW)*4 + 3]
+    } 
+  }
+
+  return {
+    pixels: dst,
+    width,
+    height
+  }
 }
 
 function render_tags(frames: Array<Frame>) {
@@ -183,7 +216,6 @@ export function aseprite(data: Buffer) {
       } else {
         pixels = [...zlib.inflateSync(data.slice(i))]
       }
-
 
       image_or_link = {
         width,
@@ -311,7 +343,7 @@ export function aseprite(data: Buffer) {
 
     let chunks = n(nb_chunks).map(_ => chunk())
 
-    let image = render_chunks(chunks)
+    let image = render_chunks(chunks, width, height)
 
     i = _i + nb_bytes
 

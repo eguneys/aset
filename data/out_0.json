@@ -1,1 +1,1 @@
-[{"folder":"./data/zlib","name":"plants","slices":[],"tags":[],"frame":[0,0,4,5],"packeds":[0,0,4,5]}]
+[{"folder":"./data/wrap","name":"castle","slices":[],"tags":[],"frame":[0,0,32,32],"packeds":[0,0,32,32]},{"folder":"./data/wrap","name":"plants","slices":[],"tags":[],"frame":[0,0,32,8],"packeds":[0,32,13,6]},{"folder":"./data/wrap","name":"some","slices":[],"tags":[],"frame":[0,0,32,32],"packeds":[32,0,32,32]}]

@@ -26,7 +26,6 @@ export class Packer {
   pages: Array<ImageSave> = []
 
   add(image: Image) {
-
     let pixels = image.pixels
     let w = image.width,
       h = image.height
@@ -48,7 +47,7 @@ export class Packer {
 
     loop_left:
     for (let x = source.x; x < source.x + source.w; x++) {
-      for (let y = top, s = x + y * w; y < source.y + source.h; y++, s++) {
+      for (let y = top, s = x + y * w; y < source.y + source.h; y++, s+= w) {
         if (pixels[s * 4 + 3] > 0) {
           left = x
           break loop_left
@@ -56,10 +55,9 @@ export class Packer {
       }
     }
 
-
     loop_right:
     for (let x = source.x + source.w - 1; x >= left; x--) {
-      for (let y = top, s = x + y * w; y < source.y + source.h; y++, s++) {
+      for (let y = top, s = x + y * w; y < source.y + source.h; y++, s+= w) {
         if (pixels[s * 4 + 3] > 0) {
           right = x + 1
           break loop_right
@@ -95,10 +93,25 @@ export class Packer {
         h: bottom - top
       }
 
+      let buffer = []
+
+      if (packed.w === w && packed.h === h) {
+        buffer = pixels
+      } else {
+        for (let i =0; i < packed.h; i++) {
+          for (let j = 0; j < packed.w; j++) {
+            buffer[(j + i * packed.w) * 4 + 0] = pixels[(left + j + (top + i) * w) * 4 + 0]
+            buffer[(j + i * packed.w) * 4 + 1] = pixels[(left + j + (top + i) * w) * 4 + 1]
+            buffer[(j + i * packed.w) * 4 + 2] = pixels[(left + j + (top + i) * w) * 4 + 2]
+            buffer[(j + i * packed.w) * 4 + 3] = pixels[(left + j + (top + i) * w) * 4 + 3]
+          }
+        }
+      }
+
       let entry = {
         frame,
         packed,
-        pixels
+        pixels: buffer
       }
 
       this.entries.push(entry)
@@ -216,7 +229,6 @@ export class Packer {
 
         let dst = sources[i].packed,
           src = sources[i].pixels
-
 
         for (let x = -padding; x < dst.w + padding; x++) {
           for (let y = -padding; y < dst.h + padding; y++) {

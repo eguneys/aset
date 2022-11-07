@@ -1,4 +1,4 @@
 import aset from '../dist/index.js'
 
 
-aset(['./data/zlib'], './data/out')
+aset(['./data/wrap'], './data/out')

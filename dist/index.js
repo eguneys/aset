@@ -2115,9 +2115,35 @@ var CSlice = 8226;
 function n(n2) {
   return [...Array(n2).keys()];
 }
-function render_chunks(chunks) {
-  let cel = chunks.filter((_) => _.type === CCel)[0];
-  return cel.data.image_or_link;
+function render_chunks(chunks, width, height) {
+  let _cel = chunks.filter((_) => _.type === CCel)[0];
+  let cel = _cel.data;
+  let srcImage = cel.image_or_link;
+  let src = srcImage.pixels;
+  let dst = [];
+  let srcX = cel.x;
+  let srcY = cel.y;
+  let srcW = srcImage.width;
+  let srcH = srcImage.height;
+  let dstW = width;
+  let dstH = height;
+  let left = Math.max(0, srcX);
+  let right = Math.min(dstW, srcX + srcW);
+  let top = Math.max(0, srcY);
+  let bottom = Math.min(dstH, srcY + srcH);
+  for (let dx = left, sx = 0; dx < right; dx++, sx++) {
+    for (let dy = top, sy = 0; dy < bottom; dy++, sy++) {
+      dst[(dx + dy * dstW) * 4 + 0] = src[(sx + sy * srcW) * 4 + 0];
+      dst[(dx + dy * dstW) * 4 + 1] = src[(sx + sy * srcW) * 4 + 1];
+      dst[(dx + dy * dstW) * 4 + 2] = src[(sx + sy * srcW) * 4 + 2];
+      dst[(dx + dy * dstW) * 4 + 3] = src[(sx + sy * srcW) * 4 + 3];
+    }
+  }
+  return {
+    pixels: dst,
+    width,
+    height
+  };
 }
 function render_tags(frames) {
   let tags = frames.flatMap((_) => _.chunks).filter((_) => _.type === CFrameTags).flatMap((_) => _.data);
@@ -2308,7 +2334,7 @@ function aseprite(data) {
     let nb_chunks_new = dword();
     let nb_chunks = nb_chunks_old === 65535 ? nb_chunks_new : nb_chunks_old;
     let chunks = n(nb_chunks).map((_) => chunk());
-    let image = render_chunks(chunks);
+    let image = render_chunks(chunks, width, height);
     i = _i + nb_bytes;
     return {
       nb_bytes,
@@ -2395,7 +2421,7 @@ var Packer = class {
       }
     loop_left:
       for (let x = source.x; x < source.x + source.w; x++) {
-        for (let y = top, s = x + y * w; y < source.y + source.h; y++, s++) {
+        for (let y = top, s = x + y * w; y < source.y + source.h; y++, s += w) {
           if (pixels[s * 4 + 3] > 0) {
             left = x;
             break loop_left;
@@ -2404,7 +2430,7 @@ var Packer = class {
       }
     loop_right:
       for (let x = source.x + source.w - 1; x >= left; x--) {
-        for (let y = top, s = x + y * w; y < source.y + source.h; y++, s++) {
+        for (let y = top, s = x + y * w; y < source.y + source.h; y++, s += w) {
           if (pixels[s * 4 + 3] > 0) {
             right = x + 1;
             break loop_right;
@@ -2433,10 +2459,23 @@ var Packer = class {
         w: right - left,
         h: bottom - top
       };
+      let buffer = [];
+      if (packed.w === w && packed.h === h) {
+        buffer = pixels;
+      } else {
+        for (let i = 0; i < packed.h; i++) {
+          for (let j = 0; j < packed.w; j++) {
+            buffer[(j + i * packed.w) * 4 + 0] = pixels[(left + j + (top + i) * w) * 4 + 0];
+            buffer[(j + i * packed.w) * 4 + 1] = pixels[(left + j + (top + i) * w) * 4 + 1];
+            buffer[(j + i * packed.w) * 4 + 2] = pixels[(left + j + (top + i) * w) * 4 + 2];
+            buffer[(j + i * packed.w) * 4 + 3] = pixels[(left + j + (top + i) * w) * 4 + 3];
+          }
+        }
+      }
       let entry = {
         frame,
         packed,
-        pixels
+        pixels: buffer
       };
       this.entries.push(entry);
       return entry;
