@@ -2198,7 +2198,7 @@ function aseprite(data) {
       if (type === 0) {
         pixels = n(count).flatMap(() => pixel());
       } else {
-        pixels = [...zlib.inflateSync(data.slice(i, i + count))];
+        pixels = [...zlib.inflateSync(data.slice(i))];
       }
       image_or_link = {
         width: width2,

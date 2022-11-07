@@ -181,7 +181,7 @@ export function aseprite(data: Buffer) {
       if (type === 0) {
         pixels = n(count).flatMap(() => pixel())
       } else {
-        pixels = [...zlib.inflateSync(data.slice(i, i + count))]
+        pixels = [...zlib.inflateSync(data.slice(i))]
       }
 
 
