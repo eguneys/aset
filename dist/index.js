@@ -1560,11 +1560,11 @@ import __import_stream2 from "stream";
 var require_packer_async = __commonJS({
   "node_modules/.pnpm/pngjs@6.0.0/node_modules/pngjs/lib/packer-async.js"(exports, module) {
     var import_constants = __toESM(require_constants());
-    var import_packer2 = __toESM(require_packer());
+    var import_packer = __toESM(require_packer());
     var util = __import_util4;
     var Stream = __import_stream2;
     var constants = import_constants.default;
-    var Packer2 = import_packer2.default;
+    var Packer2 = import_packer.default;
     var PackerAsync = module.exports = function(opt) {
       Stream.call(this);
       let options = opt || {};
@@ -1902,14 +1902,14 @@ import __import_zlib5 from "zlib";
 var require_packer_sync = __commonJS({
   "node_modules/.pnpm/pngjs@6.0.0/node_modules/pngjs/lib/packer-sync.js"(exports, module) {
     var import_constants = __toESM(require_constants());
-    var import_packer2 = __toESM(require_packer());
+    var import_packer = __toESM(require_packer());
     var hasSyncZlib = true;
     var zlib2 = __import_zlib5;
     if (!zlib2.deflateSync) {
       hasSyncZlib = false;
     }
     var constants = import_constants.default;
-    var Packer2 = import_packer2.default;
+    var Packer2 = import_packer.default;
     module.exports = function(metaData, opt) {
       if (!hasSyncZlib) {
         throw new Error(
@@ -2100,9 +2100,6 @@ var require_png = __commonJS({
     };
   }
 });
-
-// src/index.ts
-import * as fs from "fs";
 
 // src/aseprite.ts
 import * as zlib from "zlib";
@@ -2382,6 +2379,16 @@ function aseprite(data) {
 
 // src/image.ts
 var import_pngjs = __toESM(require_png(), 1);
+var _Rect = class {
+  constructor(x, y, w, h) {
+    this.x = x;
+    this.y = y;
+    this.w = w;
+    this.h = h;
+  }
+};
+var Rect = _Rect;
+Rect.make = (x, y, w, h) => new _Rect(x, y, w, h);
 var ImageSave = class {
   constructor(image) {
     this.image = image;
@@ -2393,6 +2400,24 @@ var ImageSave = class {
     });
     png.data = new Uint16Array(this.image.pixels);
     return import_pngjs.PNG.sync.write(png);
+  }
+  get_sub_image(rect) {
+    let pixels = [];
+    for (let y = 0; y < rect.h; y++) {
+      for (let x = 0; x < rect.w; x++) {
+        let dst = (x + y * rect.w) * 4;
+        let src = (x + rect.x + (rect.y + y) * this.image.width) * 4;
+        pixels[dst + 0] = this.image.pixels[src + 0];
+        pixels[dst + 1] = this.image.pixels[src + 1];
+        pixels[dst + 2] = this.image.pixels[src + 2];
+        pixels[dst + 3] = this.image.pixels[src + 3];
+      }
+    }
+    return new ImageSave({
+      width: rect.w,
+      height: rect.h,
+      pixels
+    });
   }
 };
 
@@ -2595,101 +2620,9 @@ var Node = class {
     }
   }
 };
-
-// src/index.ts
-function src_default(folders, out_prefix) {
-  let packer = new Packer();
-  Promise.all(folders.map((folder_name) => {
-    return new Promise((resolve) => fs.readdir(folder_name, (err, files) => {
-      if (err) {
-        throw err;
-        return;
-      }
-      Promise.all(files.filter((_) => _.match(/\.ase$/)).map((_) => parse(folder_name + "/" + _).then((aseprite2) => pack(aseprite2, _, folder_name)))).then(resolve);
-    }));
-  })).then((res) => {
-    pack_end(res.flat());
-  });
-  function pack_end(packs) {
-    packer.pack();
-    let res = packs.map(({ folder_name, name, packs: packs2, tags, slices }) => {
-      let frame = packs2[0].frame;
-      let packeds = packs2.map((_) => _.packed);
-      return {
-        folder: folder_name,
-        name,
-        slices: slices.map((_) => [
-          _.frame,
-          _.origin.x,
-          _.origin.y,
-          _.width,
-          _.height,
-          _.pivot?.x,
-          _.pivot?.y
-        ]),
-        tags: tags.map((_) => [
-          _.from,
-          _.to,
-          _.name
-        ]),
-        frame: [
-          frame.x,
-          frame.y,
-          frame.w,
-          frame.h
-        ],
-        packeds: packeds.flatMap((_) => [
-          _.x,
-          _.y,
-          _.w,
-          _.h
-        ])
-      };
-    });
-    let dst = out_prefix + "_0.png";
-    fs.writeFile(
-      dst,
-      packer.pages[0].png_buffer,
-      (err) => {
-        if (err) {
-          console.error(err);
-        } else {
-          console.log(`${dst}`);
-        }
-      }
-    );
-    let dst_json = out_prefix + "_0.json";
-    fs.writeFile(
-      dst_json,
-      JSON.stringify(res),
-      (err) => {
-        if (err) {
-          console.error(err);
-        } else {
-          console.log(`${dst_json}`);
-        }
-      }
-    );
-  }
-  function pack(aseprite2, name, folder_name) {
-    return {
-      folder_name,
-      name: name.split(".")[0],
-      packs: aseprite2.frames.map((frame) => packer.add(frame.image)).filter(Boolean),
-      tags: aseprite2.tags,
-      slices: aseprite2.slices
-    };
-  }
-  function parse(file) {
-    return new Promise((resolve) => fs.readFile(file, function(err, data) {
-      if (err) {
-        console.error(err);
-        return;
-      }
-      resolve(aseprite(data));
-    }));
-  }
-}
 export {
-  src_default as default
+  ImageSave,
+  Packer,
+  Rect,
+  aseprite
 };
