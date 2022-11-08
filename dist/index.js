@@ -2567,6 +2567,7 @@ var Packer = class {
           w: node.rect.w - w,
           h
         });
+        console.log(node.rect);
         sources[packed].packed.x = node.rect.x + padding;
         sources[packed].packed.y = node.rect.y + padding;
         packed++;
