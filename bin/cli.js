@@ -3,16 +3,18 @@ import { aseprite, Packer } from '../dist/index.js'
 
 let in_file = './data/many'
 
-let packer = new Packer()
+let packer = new Packer(1)
+let packs = []
 
 await ase_files(in_file).then(_ => _.map(({ name, ase}) => {
 
-  let packs = ase.frames.map(frame => packer.add(frame.image))
+  packs.push(...ase.frames.map(frame => packer.add(frame.image)))
 }))
 
 packer.pack()
 
 fs.writeFileSync('./data/out_0.png', packer.pages[0].png_buffer)
+fs.writeFileSync('./data/out_0.json', JSON.stringify(packs.map(_ => ({ frame: _.frame, packed: _.packed }))))
 
 
 function ase_files(folder) {

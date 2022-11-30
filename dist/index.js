@@ -2421,202 +2421,111 @@ var ImageSave = class {
   }
 };
 
-// src/packer.ts
-var max_size = 8192;
+// node_modules/.pnpm/potpack@2.0.0/node_modules/potpack/index.js
+function potpack(boxes) {
+  let area = 0;
+  let maxWidth = 0;
+  for (const box of boxes) {
+    area += box.w * box.h;
+    maxWidth = Math.max(maxWidth, box.w);
+  }
+  boxes.sort((a, b) => b.h - a.h);
+  const startWidth = Math.max(Math.ceil(Math.sqrt(area / 0.95)), maxWidth);
+  const spaces = [{ x: 0, y: 0, w: startWidth, h: Infinity }];
+  let width = 0;
+  let height = 0;
+  for (const box of boxes) {
+    for (let i = spaces.length - 1; i >= 0; i--) {
+      const space = spaces[i];
+      if (box.w > space.w || box.h > space.h)
+        continue;
+      box.x = space.x;
+      box.y = space.y;
+      height = Math.max(height, box.y + box.h);
+      width = Math.max(width, box.x + box.w);
+      if (box.w === space.w && box.h === space.h) {
+        const last = spaces.pop();
+        if (i < spaces.length)
+          spaces[i] = last;
+      } else if (box.h === space.h) {
+        space.x += box.w;
+        space.w -= box.w;
+      } else if (box.w === space.w) {
+        space.y += box.h;
+        space.h -= box.h;
+      } else {
+        spaces.push({
+          x: space.x + box.w,
+          y: space.y,
+          w: space.w - box.w,
+          h: box.h
+        });
+        space.y += box.h;
+        space.h -= box.h;
+      }
+      break;
+    }
+  }
+  return {
+    w: width,
+    h: height,
+    fill: area / (width * height) || 0
+  };
+}
+
+// src/packer2.ts
 var Packer = class {
-  constructor(padding = 0, spacing = 0) {
+  constructor(padding = 0) {
     this.padding = padding;
-    this.spacing = spacing;
     this.entries = [];
     this.pages = [];
   }
   add(image) {
+    let { padding } = this;
     let pixels = image.pixels;
     let w = image.width, h = image.height;
-    let source = { x: 0, y: 0, w: image.width, h: image.height };
-    let top = source.y, left = source.x, right = source.x, bottom = source.y;
-    loop_top:
-      for (let y = source.y; y < source.y + source.h; y++) {
-        for (let x = source.x, s = x + y * w; x < source.x + source.w; x++, s++) {
-          if (pixels[s * 4 + 3] > 0) {
-            top = y;
-            break loop_top;
-          }
-        }
-      }
-    loop_left:
-      for (let x = source.x; x < source.x + source.w; x++) {
-        for (let y = top, s = x + y * w; y < source.y + source.h; y++, s += w) {
-          if (pixels[s * 4 + 3] > 0) {
-            left = x;
-            break loop_left;
-          }
-        }
-      }
-    loop_right:
-      for (let x = source.x + source.w - 1; x >= left; x--) {
-        for (let y = top, s = x + y * w; y < source.y + source.h; y++, s += w) {
-          if (pixels[s * 4 + 3] > 0) {
-            right = x + 1;
-            break loop_right;
-          }
-        }
-      }
-    loop_bottom:
-      for (let y = source.y + source.h - 1; y >= top; y--) {
-        for (let x = left, s = x + y * w; x < right; x++, s++) {
-          if (pixels[s * 4 + 3] > 0) {
-            bottom = y + 1;
-            break loop_bottom;
-          }
-        }
-      }
-    if (right > left && bottom > top) {
-      let frame = {
-        x: source.x - left,
-        y: source.y - top,
-        w,
-        h
-      };
-      let packed = {
-        x: -1,
-        y: -1,
-        w: right - left,
-        h: bottom - top
-      };
-      let buffer = [];
-      if (packed.w === w && packed.h === h) {
-        buffer = pixels;
-      } else {
-        for (let i = 0; i < packed.h; i++) {
-          for (let j = 0; j < packed.w; j++) {
-            buffer[(j + i * packed.w) * 4 + 0] = pixels[(left + j + (top + i) * w) * 4 + 0];
-            buffer[(j + i * packed.w) * 4 + 1] = pixels[(left + j + (top + i) * w) * 4 + 1];
-            buffer[(j + i * packed.w) * 4 + 2] = pixels[(left + j + (top + i) * w) * 4 + 2];
-            buffer[(j + i * packed.w) * 4 + 3] = pixels[(left + j + (top + i) * w) * 4 + 3];
-          }
-        }
-      }
-      let entry = {
-        frame,
-        packed,
-        pixels: buffer
-      };
-      this.entries.push(entry);
-      return entry;
-    }
+    let frame = {
+      x: padding,
+      y: padding,
+      w,
+      h
+    };
+    let packed = {
+      x: 0,
+      y: 0,
+      w: w + padding * 2,
+      h: h + padding * 2
+    };
+    let entry = {
+      frame,
+      packed,
+      pixels
+    };
+    this.entries.push(entry);
+    return entry;
   }
   pack() {
-    let { padding, spacing } = this;
-    let sources = this.entries.slice(0);
-    sources.sort(
-      (a, b) => b.packed.w * b.packed.h - a.packed.w * a.packed.h
-    );
-    let count = this.entries.length;
-    let nodes = [];
-    let packed = 0, page = 0;
-    while (packed < count) {
-      let from = packed;
-      let index = 0;
-      let root = new Node({
-        x: 0,
-        y: 0,
-        w: sources[from].packed.w + padding * 2 + spacing,
-        h: sources[from].packed.h + padding * 2 + spacing
-      });
-      while (packed < count) {
-        let w = sources[packed].packed.w + padding * 2 + spacing;
-        let h = sources[packed].packed.h + padding * 2 + spacing;
-        let node = root.find(w, h);
-        if (!node) {
-          let canGrowDown = w <= root.rect.w && root.rect.h + h < max_size;
-          let canGrowRight = h <= root.rect.h && root.rect.w + w < max_size;
-          let shouldGrowRight = canGrowRight && root.rect.h >= root.rect.w + w;
-          let shouldGrowDown = canGrowDown && root.rect.w >= root.rect.h + h;
-          if (canGrowDown || canGrowRight) {
-            if (shouldGrowRight || !shouldGrowDown && canGrowRight) {
-              let next = new Node({ x: 0, y: 0, w: root.rect.w + w, h: root.rect.h });
-              next.used = true;
-              next.down = root;
-              next.right = new Node({ x: root.rect.w, y: 0, w, h: root.rect.h });
-              node = next.right;
-              root = next;
-            } else {
-              let next = new Node({ x: 0, y: 0, w: root.rect.w, h: root.rect.h + h });
-              next.used = true;
-              next.down = new Node({ x: 0, y: root.rect.h, w: root.rect.w, h });
-              next.right = root;
-              node = next.down;
-              root = next;
-            }
-          }
+    let { padding } = this;
+    let sources = this.entries;
+    let { w, h } = potpack(sources.map((_) => _.packed));
+    let page = {
+      width: w,
+      height: h,
+      pixels: []
+    };
+    this.pages.push(new ImageSave(page));
+    for (let i = 0; i < sources.length; i++) {
+      let dst = sources[i].packed, src = sources[i].pixels;
+      let sw = sources[i].frame.w, sh = sources[i].frame.h;
+      for (let x = 0; x < sw; x++) {
+        for (let y = 0; y < sh; y++) {
+          let sx = x + padding;
+          let sy = y + padding;
+          page.pixels[(dst.x + sx + (dst.y + sy) * page.width) * 4 + 0] = src[(x + y * sw) * 4 + 0];
+          page.pixels[(dst.x + sx + (dst.y + sy) * page.width) * 4 + 1] = src[(x + y * sw) * 4 + 1];
+          page.pixels[(dst.x + sx + (dst.y + sy) * page.width) * 4 + 2] = src[(x + y * sw) * 4 + 2];
+          page.pixels[(dst.x + sx + (dst.y + sy) * page.width) * 4 + 3] = src[(x + y * sw) * 4 + 3];
         }
-        if (!node) {
-          break;
-        }
-        node.used = true;
-        node.down = new Node({
-          x: node.rect.x,
-          y: node.rect.y + h,
-          w: node.rect.w,
-          h: node.rect.h - h
-        });
-        node.right = new Node({
-          x: node.rect.x + w,
-          y: node.rect.y,
-          w: node.rect.w - w,
-          h
-        });
-        console.log(node.rect);
-        sources[packed].packed.x = node.rect.x + padding;
-        sources[packed].packed.y = node.rect.y + padding;
-        packed++;
-      }
-      let page_width = 2, page_height = 2;
-      while (page_width < root.rect.w) {
-        page_width *= 2;
-      }
-      while (page_height < root.rect.h) {
-        page_height *= 2;
-      }
-      let page2 = {
-        width: page_width,
-        height: page_height,
-        pixels: []
-      };
-      this.pages.push(new ImageSave(page2));
-      for (let i = from; i < packed; i++) {
-        sources[i].page = this.pages.length - 1;
-        let dst = sources[i].packed, src = sources[i].pixels;
-        for (let x = -padding; x < dst.w + padding; x++) {
-          for (let y = -padding; y < dst.h + padding; y++) {
-            let sx = x < 0 ? 0 : x > dst.w - 1 ? dst.w - 1 : x;
-            let sy = y < 0 ? 0 : y > dst.h - 1 ? dst.h - 1 : y;
-            page2.pixels[(dst.x + x + (dst.y + y) * page2.width) * 4 + 0] = src[(sx + sy * dst.w) * 4 + 0];
-            page2.pixels[(dst.x + x + (dst.y + y) * page2.width) * 4 + 1] = src[(sx + sy * dst.w) * 4 + 1];
-            page2.pixels[(dst.x + x + (dst.y + y) * page2.width) * 4 + 2] = src[(sx + sy * dst.w) * 4 + 2];
-            page2.pixels[(dst.x + x + (dst.y + y) * page2.width) * 4 + 3] = src[(sx + sy * dst.w) * 4 + 3];
-          }
-        }
-      }
-    }
-  }
-};
-var Node = class {
-  constructor(rect) {
-    this.rect = rect;
-    this.used = false;
-  }
-  find(w, h) {
-    if (this.used) {
-      let r = this.right?.find(w, h);
-      if (!r) {
-        return r;
-      }
-      return this.down?.find(w, h);
-    } else {
-      if (w <= this.rect.w && h <= this.rect.h) {
-        return this;
       }
     }
   }

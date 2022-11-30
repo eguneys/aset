@@ -6,10 +6,12 @@ specifiers:
   '@types/pngjs': ^6.0.1
   esbuild: ^0.15.12
   pngjs: ^6.0.0
+  potpack: ^2.0.0
   typescript: ^4.8.4
 
 dependencies:
   pngjs: 6.0.0
+  potpack: 2.0.0
 
 devDependencies:
   '@hyrious/esbuild-plugin-commonjs': 0.2.1_esbuild@0.15.12
@@ -274,6 +276,10 @@ packages:
   /pngjs/6.0.0:
     resolution: {integrity: sha512-TRzzuFRRmEoSW/p1KVAmiOgPco2Irlah+bGFCeNfJXxxYGwSw7YwAOAcd7X28K/m5bjBWKsC29KyoMfHbypayg==}
     engines: {node: '>=12.13.0'}
+    dev: false
+
+  /potpack/2.0.0:
+    resolution: {integrity: sha512-Q+/tYsFU9r7xoOJ+y/ZTtdVQwTWfzjbiXBDMM/JKUux3+QPP02iUuIoeBQ+Ot6oEDlC+/PGjB/5A3K7KKb7hcw==}
     dev: false
 
   /typescript/4.8.4:
