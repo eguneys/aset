@@ -2117,7 +2117,7 @@ function render_chunks(chunks, width, height) {
   let cel = _cel.data;
   let srcImage = cel.image_or_link;
   let src = srcImage.pixels;
-  let dst = [];
+  let dst = new Uint8Array(width * height * 4);
   let srcX = cel.x;
   let srcY = cel.y;
   let srcW = srcImage.width;
@@ -2219,9 +2219,9 @@ function aseprite(data) {
       let count = width2 * height2;
       let pixels;
       if (type === 0) {
-        pixels = n(count).flatMap(() => pixel());
+        throw "Non zlib data";
       } else {
-        pixels = [...zlib.inflateSync(data.slice(i))];
+        pixels = new Uint8Array(zlib.inflateSync(data.slice(i)));
       }
       image_or_link = {
         width: width2,
@@ -2402,7 +2402,7 @@ var ImageSave = class {
     return import_pngjs.PNG.sync.write(png);
   }
   get_sub_image(rect) {
-    let pixels = [];
+    let pixels = new Uint8Array(rect.w * rect.h * 4);
     for (let y = 0; y < rect.h; y++) {
       for (let x = 0; x < rect.w; x++) {
         let dst = (x + y * rect.w) * 4;
@@ -2511,7 +2511,7 @@ var Packer = class {
     let page = {
       width: w,
       height: h,
-      pixels: []
+      pixels: new Uint8Array(w * h * 4)
     };
     this.pages.push(new ImageSave(page));
     for (let i = 0; i < sources.length; i++) {

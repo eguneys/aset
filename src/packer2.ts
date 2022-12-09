@@ -1,8 +1,14 @@
-import { ImageSave, Image } from './image'
+import { ImageSave, Image, Rect } from './image'
 import potpack from 'potpack'
 
 const max_size = 8192
 
+export type Entry = {
+  page?: number,
+  frame: Rect,
+  packed: Rect,
+  pixels: Uint8Array
+}
 
 export class Packer {
 
@@ -53,13 +59,12 @@ export class Packer {
 
     let sources = this.entries
 
-
     let { w, h } = potpack(sources.map(_ => _.packed))
 
     let page = {
       width: w,
       height: h,
-      pixels: []
+      pixels: new Uint8Array(w * h * 4)
     }
 
     this.pages.push(new ImageSave(page))
@@ -70,7 +75,6 @@ export class Packer {
 
       let sw = sources[i].frame.w,
         sh = sources[i].frame.h
-
 
       for (let x = 0; x < sw; x++) {
         for (let y = 0; y < sh; y++) {

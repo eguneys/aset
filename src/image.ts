@@ -12,7 +12,7 @@ export class Rect {
 export type Image = {
   width: number,
   height: number,
-  pixels: Array<number>
+  pixels: Uint8Array
 }
 
 export class ImageSave {
@@ -30,7 +30,7 @@ export class ImageSave {
 
   get_sub_image(rect: Rect) {
 
-    let pixels = []
+    let pixels = new Uint8Array(rect.w * rect.h * 4)
 
     for (let y = 0; y < rect.h; y++) {
       for (let x = 0; x < rect.w; x++) {

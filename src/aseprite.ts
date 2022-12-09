@@ -85,7 +85,7 @@ function render_chunks(chunks: Array<Chunk>, width: number, height: number) {
   let srcImage = cel.image_or_link as Image
 
   let src = srcImage.pixels
-  let dst: Array<number> = []
+  let dst: Uint8Array = new Uint8Array(width * height * 4)
 
   let srcX = cel.x
   let srcY = cel.y
@@ -210,11 +210,12 @@ export function aseprite(data: Buffer) {
       let height = word()
       let count = width * height
 
-      let pixels: Array<number>
+      let pixels: Uint8Array
       if (type === 0) {
-        pixels = n(count).flatMap(() => pixel())
+        //pixels = n(count).flatMap(() => pixel())
+        throw 'Non zlib data'
       } else {
-        pixels = [...zlib.inflateSync(data.slice(i))]
+        pixels = new Uint8Array(zlib.inflateSync(data.slice(i)))
       }
 
       image_or_link = {

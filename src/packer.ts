@@ -1,5 +1,7 @@
 import { ImageSave, Image } from './image'
 
+export default {}
+/*
 const max_size = 8192
 
 export type Rect = {
@@ -13,7 +15,7 @@ export type Entry = {
   page?: number,
   frame: Rect,
   packed: Rect,
-  pixels: Array<number>
+  pixels: Uint8Array
 }
 
 export class Packer {
@@ -93,7 +95,7 @@ export class Packer {
         h: bottom - top
       }
 
-      let buffer = []
+      let buffer = new Uint8Array()
 
       if (packed.w === w && packed.h === h) {
         buffer = pixels
@@ -274,3 +276,4 @@ class Node {
   }
 
 }
+*/
