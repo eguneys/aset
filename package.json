@@ -6,7 +6,7 @@
   "exports": "./dist/index.js",
   "scripts": {
     "start": "pnpm bundle && node ./bin/cli.js",
-    "bundle": "rm -rf dist && node bundle.js",
+    "bundle": "rimraf dist && node bundle.js",
     "lint": "tsc --noEmit --watch"
   },
   "keywords": [],
@@ -17,6 +17,7 @@
     "@types/node": "^18.11.8",
     "@types/pngjs": "^6.0.1",
     "esbuild": "^0.15.12",
+    "rimraf": "^5.0.1",
     "typescript": "^4.8.4"
   },
   "dependencies": {
