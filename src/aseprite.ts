@@ -80,6 +80,10 @@ function n(n: number) {
 function render_chunks(chunks: Array<Chunk>, width: number, height: number) {
   let _cel = chunks.filter(_ => _.type === CCel)[0]
 
+  if (!_cel) {
+    return undefined
+  }
+
   let cel: CelChunk = _cel.data as CelChunk
 
   let srcImage = cel.image_or_link as Image
@@ -346,6 +350,10 @@ export function aseprite(data: Buffer) {
 
     let image = render_chunks(chunks, width, height)
 
+    if (!image) {
+      return undefined
+    }
+
     i = _i + nb_bytes
 
     return {
@@ -380,7 +388,7 @@ export function aseprite(data: Buffer) {
   let grid_h   = word()
   n(84).map(_ => _byte())
 
-  let frames = n(nb_frames).map(_ => frame())
+  let frames = n(nb_frames).map(_ => frame()).filter(Boolean) as Array<Frame>
   let tags = render_tags(frames)
   let slices = render_slices(frames)
 

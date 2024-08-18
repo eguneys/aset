@@ -2114,6 +2114,9 @@ function n(n2) {
 }
 function render_chunks(chunks, width, height) {
   let _cel = chunks.filter((_) => _.type === CCel)[0];
+  if (!_cel) {
+    return void 0;
+  }
   let cel = _cel.data;
   let srcImage = cel.image_or_link;
   let src = srcImage.pixels;
@@ -2332,6 +2335,9 @@ function aseprite(data) {
     let nb_chunks = nb_chunks_old === 65535 ? nb_chunks_new : nb_chunks_old;
     let chunks = n(nb_chunks).map((_) => chunk());
     let image = render_chunks(chunks, width, height);
+    if (!image) {
+      return void 0;
+    }
     i = _i + nb_bytes;
     return {
       nb_bytes,
@@ -2361,7 +2367,7 @@ function aseprite(data) {
   let grid_w = word();
   let grid_h = word();
   n(84).map((_) => _byte());
-  let frames = n(nb_frames).map((_) => frame());
+  let frames = n(nb_frames).map((_) => frame()).filter(Boolean);
   let tags = render_tags(frames);
   let slices = render_slices(frames);
   return {
